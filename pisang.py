@@ -21,9 +21,9 @@ iou_threshold = st.sidebar.slider("IoU Threshold", 0.1, 1.0, 0.5, 0.05)
 
 # Sidebar untuk navigasi
 st.sidebar.title("📸 Pilih Mode Deteksi")
-mode = st.sidebar.radio("Mode Deteksi", ["Gambar", "Video", "Kamera"])
+mode = st.sidebar.radio("Mode Deteksi", ["Gambar", "Video"])
 
-st.title("🚀 YOLO Object Detection")
+st.title("🚀 Deteksi Penyakit Daun Pisang")
 
 # Fungsi deteksi objek
 def detect_objects(image, conf_thresh, iou_thresh):
@@ -71,18 +71,18 @@ elif mode == "Video":
 
         cap.release()
 
-# Mode: Deteksi dari Kamera (Realtime)
-elif mode == "Kamera":
-    st.write("🎥 Deteksi dari Kamera (WebRTC)")
+# # Mode: Deteksi dari Kamera (Realtime)
+# elif mode == "Kamera":
+#     st.write("🎥 Deteksi dari Kamera (WebRTC)")
 
-    def process_frame(frame):
-        img = frame.to_ndarray(format="bgr24")  # Konversi frame ke NumPy
-        processed_img = detect_objects(img, confidence_threshold, iou_threshold)
-        return av.VideoFrame.from_ndarray(processed_img, format="bgr24")
+#     def process_frame(frame):
+#         img = frame.to_ndarray(format="bgr24")  # Konversi frame ke NumPy
+#         processed_img = detect_objects(img, confidence_threshold, iou_threshold)
+#         return av.VideoFrame.from_ndarray(processed_img, format="bgr24")
 
-    # Stream kamera langsung
-    webrtc_streamer(
-        key="camera",
-        video_frame_callback=process_frame,
-        rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]}
-    )
+#     # Stream kamera langsung
+#     webrtc_streamer(
+#         key="camera",
+#         video_frame_callback=process_frame,
+#         rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]}
+#     )
