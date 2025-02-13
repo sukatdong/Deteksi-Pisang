@@ -6,7 +6,7 @@ from PIL import Image
 from ultralytics import YOLO
 
 # Load YOLO model
-model = YOLO("50nonaug.pt")
+model = YOLO("best.pt")
 
 # Konfigurasi halaman
 st.set_page_config(page_title="YOLO Object Detection", layout="wide")
