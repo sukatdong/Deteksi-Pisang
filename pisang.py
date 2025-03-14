@@ -8,7 +8,7 @@ from ultralytics import YOLO
 from streamlit_webrtc import webrtc_streamer
 
 # Load model YOLO
-MODEL_PATH = "best.pt"  # Pastikan model ada di folder yang sama
+MODEL_PATH = "pisangkanya.pt"  # Pastikan model ada di folder yang sama
 model = YOLO(MODEL_PATH)
 
 # Konfigurasi halaman Streamlit
