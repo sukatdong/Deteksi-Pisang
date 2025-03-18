@@ -1,65 +1,92 @@
 import streamlit as st
 import cv2
-from ultralytics import YOLO
-from PIL import Image
+import torch
 import numpy as np
+from PIL import Image
+from ultralytics import YOLO
 
-# Load YOLOv8 model
-model = YOLO('pakdo.pt')
+# Load YOLO model
+model = YOLO("pakdo.pt")
 
-# Streamlit UI
-st.title('Deteksi Penyakit Pisang dengan YOLOv8n')
-st.write("Aplikasi ini mendeteksi penyakit pada pisang dari gambar dan kamera langsung.")
+# Konfigurasi halaman
+st.set_page_config(page_title="YOLO Object Detection", layout="wide")
 
-# Opsi untuk deteksi gambar atau kamera
-option = st.selectbox("Pilih Mode Deteksi", ["Deteksi Gambar", "Deteksi Kamera"])
+# Sidebar untuk pengaturan model
+st.sidebar.title("Pengaturan Model")
+confidence_threshold = st.sidebar.slider("Threshold Confidence", 0.1, 1.0, 0.5, 0.05)
+iou_threshold = st.sidebar.slider("IoU Threshold", 0.1, 1.0, 0.5, 0.05)
 
-# Fungsi untuk deteksi gambar
-def detect_image(image):
-    results = model.predict(image)  # Prediksi menggunakan YOLOv8
-    result_image = results[0].plot()  # Visualisasi hasil
-    return result_image
+# Sidebar untuk navigasi
+st.sidebar.title("Pilih Mode Input")
+mode = st.sidebar.radio("Mode Deteksi", ["Gambar", "Video", "Kamera"])
 
-# Deteksi dari Gambar
-if option == "Deteksi Gambar":
-    uploaded_file = st.file_uploader("Unggah Gambar", type=['jpg', 'jpeg', 'png'])
+st.title("YOLO Object Detection")
+
+# Fungsi deteksi objek
+def detect_objects(image, conf_thresh, iou_thresh):
+    results = model(image, conf=conf_thresh, iou=iou_thresh)
+    annotated_frame = results[0].plot()  # Menampilkan hasil deteksi dengan anotasi
+    return annotated_frame
+
+if mode == "Gambar":
+    uploaded_file = st.file_uploader("Upload Gambar", type=["jpg", "png", "jpeg"])
     if uploaded_file is not None:
+        col1, col2 = st.columns(2)
+
         image = Image.open(uploaded_file)
-        st.image(image, caption="Gambar yang diunggah", use_column_width=True)
+        image = np.array(image)
+        processed_image = detect_objects(image, confidence_threshold, iou_threshold)
 
-        # Deteksi penyakit pisang
-        st.write("Mendeteksi...")
-        result_image = detect_image(np.array(image))
-        st.image(result_image, caption="Hasil Deteksi", use_column_width=True)
+        with col1:
+            st.image(image, caption="Gambar Asli", use_column_width=True)
+        with col2:
+            st.image(processed_image, caption="Hasil Deteksi", use_column_width=True)
 
-# Deteksi dari Kamera
-if option == "Deteksi Kamera":
-    st.write("Arahkan kamera pada objek untuk mendeteksi penyakit pisang.")
+elif mode == "Video":
+    uploaded_video = st.file_uploader("Upload Video", type=["mp4", "avi", "mov"])
+    if uploaded_video is not None:
+        tfile = f"temp_video.{uploaded_video.name.split('.')[-1]}"
+        with open(tfile, "wb") as f:
+            f.write(uploaded_video.read())
 
-    # Membuka kamera
-    cap = cv2.VideoCapture(0)
+        cap = cv2.VideoCapture(tfile)
+        stframe1, stframe2 = st.columns(2)
 
-    # Placeholder untuk menampilkan hasil terbaru di atas
-    camera_placeholder = st.empty()
-
-    run_camera = st.button("Mulai Deteksi Kamera")
-    stop_camera = st.button("Stop Deteksi Kamera")
-
-    if run_camera:
-        while True:
+        while cap.isOpened():
             ret, frame = cap.read()
             if not ret:
-                st.error("Gagal mengakses kamera.")
                 break
+            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            processed_frame = detect_objects(frame_rgb, confidence_threshold, iou_threshold)
 
-            # Deteksi penyakit pisang di frame kamera
-            result_image = detect_image(frame)
+            stframe1.image(frame_rgb, channels="RGB", caption="Video Asli")
+            stframe2.image(processed_frame, channels="RGB", caption="Hasil Deteksi")
 
-            # Tampilkan frame dengan deteksi di placeholder (selalu terbarui di atas)
-            camera_placeholder.image(result_image, channels="BGR", use_column_width=True)
+        cap.release()
 
-            # Break jika tombol stop ditekan
-            if stop_camera:
-                break
+elif mode == "Kamera":
+    st.subheader("Deteksi Real-time dengan Kamera")
+
+    cap = cv2.VideoCapture(0)
+    
+    # Menggunakan st.empty untuk menempatkan hasil deteksi di bagian paling atas
+    detection_placeholder = st.empty()
+    camera_placeholder = st.empty()
+
+    stop_button = st.button("Stop Deteksi")
+
+    while cap.isOpened() and not stop_button:
+        ret, frame = cap.read()
+        if not ret:
+            st.error("Gagal mengakses kamera.")
+            break
+        
+        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        processed_frame = detect_objects(frame_rgb, confidence_threshold, iou_threshold)
+
+        # Menampilkan hasil deteksi terlebih dahulu, kemudian frame kamera asli
+        detection_placeholder.image(processed_frame, channels="RGB", caption="Hasil Deteksi", use_column_width=True)
+        camera_placeholder.image(frame_rgb, channels="RGB", caption="Kamera Asli", use_column_width=True)
 
     cap.release()
+    st.success("Deteksi kamera dihentikan.")
